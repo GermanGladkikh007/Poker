@@ -8,6 +8,10 @@ import org.example.model.table.card_characteristics.Suit;
 
 import java.util.*;
 
+
+/**
+ * Класс оценки силы руки
+ */
 public class HandEvaluator {
 
     private final Board board;
@@ -16,6 +20,12 @@ public class HandEvaluator {
         this.board = board;
     }
 
+
+    /**
+     * Определение силы руки
+     * @param player
+     * @return
+     */
     public HandValue evaluate(Player player) {
         List<Card> holeCards = player.getHoleCards();
         List<Card> allCards = new ArrayList<Card>(holeCards);

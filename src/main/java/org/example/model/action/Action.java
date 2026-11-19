@@ -1,5 +1,11 @@
 package org.example.model.action;
 
+
+/**
+ * Характеристика действия
+ * @param actionType
+ * @param amount - на сколько изменить, используется только для Raise
+ */
 public record Action(ActionType actionType, int amount) {
 
     public Action {
@@ -12,6 +18,10 @@ public record Action(ActionType actionType, int amount) {
         if (actionType != ActionType.RAISE && amount != 0) {
             throw new IllegalArgumentException("amount может быть только для RAISE");
         }
+    }
+
+    public Action(ActionType actionType){
+        this(actionType, 0);
     }
 
     @Override

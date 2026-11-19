@@ -20,7 +20,6 @@ public enum HandRank {
         this.strength = strength;
     }
 
-    public String getRussianName() { return russianName; }
     public int getStrength() { return strength; }
 
     @Override

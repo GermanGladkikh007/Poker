@@ -51,5 +51,45 @@ public class Player {
         return Objects.hash(id);
     }
 
+
+    public int getId() {
+        return id;
+    }
+
+    public int getChips() {
+        return chips;
+    }
+
+    public int getCurrentBet() {
+        return currentBet;
+    }
+
+    public int getTotalContribution() {
+        return totalContribution;
+    }
+
+    public PlayerStatus getStatus() {
+        return status;
+    }
+
+    public DecisionMaker getDecisionMaker() {
+        return decisionMaker;
+    }
+
+    public void setChips(int chips) {
+        this.chips = chips;
+    }
+
+    public void setHoleCards(List<Card> holeCards) {
+        this.holeCards = holeCards;
+    }
+
+    public void setCurrentBet(int currentBet) {
+        this.currentBet = currentBet;
+    }
+
+    public void setTotalContribution(int totalContribution) {
+        this.totalContribution = totalContribution;
+    }
 }
 

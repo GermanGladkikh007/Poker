@@ -4,6 +4,13 @@ import org.example.model.player.Player;
 
 import java.util.List;
 
+
+/**
+ * Общие данные об игре -
+ * @param seed для Random
+ * @param smallBlind
+ * @param bigBlind
+ */
 public record GameConfig(
                          long seed,
                          int smallBlind,

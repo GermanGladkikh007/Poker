@@ -1,12 +1,18 @@
 package org.example.model.game;
 
+import org.example.model.player.PlayerStatus;
 import org.example.model.table.Board;
 import org.example.model.player.Player;
 import org.example.model.table.Pot;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
+
+/**
+ * Состояние игры(игроки, раздача, банки)
+ */
 public class GameState {
     private final List<Player> players;
     private final Board board;
@@ -14,24 +20,71 @@ public class GameState {
     private Street street;
     private int currentPlayerIndex;
     private int dealerIndex;
-    private int currentBet;
+    private int currentBet; // максимальная ставка, которую нужно уровнять
+    private boolean isHandOver;
+    private final int constMinRaise;
+    private int minRaise;
 
-
-    public GameState() {
+    public GameState(int minRaise) {
         this.players = new ArrayList<>();
         this.board = new Board();
+        this.pots = new ArrayList<>();
+        this.street = Street.PREFLOP;
+        this.currentBet = 0;
+        this.isHandOver = false;
+        this.constMinRaise = minRaise;
+        this.minRaise = minRaise;
     }
 
-    public GameState(List<Player> players, Board board, List<Pot> pots,
-                     Street street, int currentPlayerIndex, int dealerIndex,
-                     int currentBet, long seed) {
+    public GameState(List<Player> players, Board board,
+                     int dealerIndex, int minRaise) {
         this.players = players;
         this.board = board;
-        this.pots = pots;
-        this.street = street;
-        this.currentPlayerIndex = currentPlayerIndex;
+        this.pots = new ArrayList<>();
+        pots.add(new Pot(0,new HashSet<>(players)));
+        this.street = Street.PREFLOP;
         this.dealerIndex = dealerIndex;
-        this.currentBet = currentBet;
+        this.currentBet = 0;
+        this.isHandOver = false;
+        this.constMinRaise = minRaise;
+        this.minRaise = minRaise;
+    }
+
+    public void resetForNewHand() {
+        board.clear();
+        pots.clear();
+        pots.add(new Pot(0,new HashSet<>(players)));
+        street = Street.PREFLOP;
+        currentBet = 0;
+        isHandOver = false;
+        minRaise = constMinRaise;
+        for (Player player : players) {
+            player.getHoleCards().clear();
+            player.setCurrentBet(0);
+            player.setTotalContribution(0);
+            player.setStatus(player.getChips() > 0 ? PlayerStatus.ACTIVE : PlayerStatus.OUT);
+        }
+    }
+
+    public boolean isHandOver() {
+        return isHandOver;
+    }
+
+    public void setHandOver(boolean handOver) {
+        this.isHandOver = handOver;
+    }
+
+
+    public int getConstMinRaise() {
+        return constMinRaise;
+    }
+
+    public void setMinRaise(int minRaise) {
+        this.minRaise = minRaise;
+    }
+
+    public int getMinRaise() {
+        return minRaise;
     }
 
     public List<Player> getPlayers() {
@@ -81,5 +134,6 @@ public class GameState {
     public void setCurrentBet(int currentBet) {
         this.currentBet = currentBet;
     }
+
 
 }

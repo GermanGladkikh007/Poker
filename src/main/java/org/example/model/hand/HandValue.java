@@ -3,6 +3,10 @@ package org.example.model.hand;
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * Класс силы руки при вскрытии(комбинация, кикеры)
+ */
 public class HandValue implements Comparable<HandValue> {
 
     private HandRank handRank;

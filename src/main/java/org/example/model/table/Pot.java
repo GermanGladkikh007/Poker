@@ -20,6 +20,10 @@ public class Pot {
         this.eligiblePlayers = eligiblePlayers;
     }
 
+    /**
+     * Добавление фишек в банк
+     * @param chips
+     */
     public void add(int chips){
         if(chips < 0) throw new IllegalArgumentException("Нельзя добавить отрицательное количество");
         amount += chips;
