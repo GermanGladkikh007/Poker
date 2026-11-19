@@ -1,7 +1,6 @@
 package org.example.model.game.events;
 
-import org.example.model.enums.Street;
-import org.example.model.game.GameEvent;
+import org.example.model.game.Street;
 import org.example.model.table.Card;
 
 import java.util.List;

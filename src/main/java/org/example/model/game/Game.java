@@ -1,7 +1,8 @@
 package org.example.model.game;
 
 import org.example.ConsoleView;
-import org.example.model.Action;
+import org.example.model.action.Action;
+import org.example.model.game.events.GameEvent;
 import org.example.model.player.Player;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class Game {
     private void step() {
         Player current = gameEngine.getCurrentPlayer();
         List<Action> legalActions = gameEngine.getLegalActions();
-        Action action = current.decide(gameEngine.getState(), legalActions);
+        Action action = current.decide(gameEngine.getGameState(), legalActions);
 
         List<GameEvent> events = gameEngine.applyAction(action);
 

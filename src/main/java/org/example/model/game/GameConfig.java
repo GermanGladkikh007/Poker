@@ -4,7 +4,7 @@ import org.example.model.player.Player;
 
 import java.util.List;
 
-public record GameConfig(List<Player> players,
+public record GameConfig(
                          long seed,
                          int smallBlind,
                          int bigBlind) {

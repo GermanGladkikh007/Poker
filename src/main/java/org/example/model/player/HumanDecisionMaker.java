@@ -1,6 +1,6 @@
 package org.example.model.player;
 
-import org.example.model.Action;
+import org.example.model.action.Action;
 import org.example.model.game.GameState;
 
 import java.util.List;

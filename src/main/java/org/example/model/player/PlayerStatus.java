@@ -1,4 +1,4 @@
-package org.example.model.enums;
+package org.example.model.player;
 
 public enum PlayerStatus {
     ACTIVE,

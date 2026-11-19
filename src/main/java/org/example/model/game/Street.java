@@ -1,4 +1,4 @@
-package org.example.model.enums;
+package org.example.model.game;
 
 public enum Street {
     PREFLOP, FLOP, TURN, RIVER, SHOWDOWN

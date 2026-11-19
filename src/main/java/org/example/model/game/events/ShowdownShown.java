@@ -1,6 +1,5 @@
 package org.example.model.game.events;
 
-import org.example.model.game.GameEvent;
 import org.example.model.player.Player;
 import org.example.model.table.Card;
 

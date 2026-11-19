@@ -1,6 +1,4 @@
-package org.example.model;
-
-import org.example.model.enums.ActionType;
+package org.example.model.action;
 
 public record Action(ActionType actionType, int amount) {
 
@@ -16,6 +14,16 @@ public record Action(ActionType actionType, int amount) {
         }
     }
 
+    @Override
+    public String toString() {
+        return switch (actionType) {
+            case FOLD   -> "сбрасывает карты";
+            case CHECK  -> "чек";
+            case CALL   -> "уравнивает";
+            case RAISE  -> "повышает до " + amount;
+            case ALL_IN -> "идёт ва-банк";
+        };
+    }
 }
 
 

@@ -3,7 +3,6 @@ package org.example.model.game;
 import org.example.model.table.Board;
 import org.example.model.player.Player;
 import org.example.model.table.Pot;
-import org.example.model.enums.Street;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,10 +15,9 @@ public class GameState {
     private int currentPlayerIndex;
     private int dealerIndex;
     private int currentBet;
-    private final long seed;
 
-    public GameState(long seed) {
-        this.seed = seed;
+
+    public GameState() {
         this.players = new ArrayList<>();
         this.board = new Board();
     }
@@ -34,7 +32,6 @@ public class GameState {
         this.currentPlayerIndex = currentPlayerIndex;
         this.dealerIndex = dealerIndex;
         this.currentBet = currentBet;
-        this.seed = seed;
     }
 
     public List<Player> getPlayers() {
@@ -63,10 +60,6 @@ public class GameState {
 
     public int getCurrentBet() {
         return currentBet;
-    }
-
-    public long getSeed() {
-        return seed;
     }
 
     public void setPots(List<Pot> pots) {
