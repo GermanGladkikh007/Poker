@@ -24,6 +24,7 @@ public class GameState {
     private boolean isHandOver;
     private final int constMinRaise;
     private int minRaise;
+    private int actionsTakenThisRound = 0;
 
     public GameState(int minRaise) {
         this.players = new ArrayList<>();
@@ -58,12 +59,21 @@ public class GameState {
         currentBet = 0;
         isHandOver = false;
         minRaise = constMinRaise;
+        actionsTakenThisRound = 0;
         for (Player player : players) {
             player.getHoleCards().clear();
             player.setCurrentBet(0);
             player.setTotalContribution(0);
             player.setStatus(player.getChips() > 0 ? PlayerStatus.ACTIVE : PlayerStatus.OUT);
         }
+    }
+
+    public int getActionsTakenThisRound() {
+        return actionsTakenThisRound;
+    }
+
+    public void setActionsTakenThisRound(int actionsTakenThisRound) {
+        this.actionsTakenThisRound = actionsTakenThisRound;
     }
 
     public boolean isHandOver() {
@@ -73,7 +83,6 @@ public class GameState {
     public void setHandOver(boolean handOver) {
         this.isHandOver = handOver;
     }
-
 
     public int getConstMinRaise() {
         return constMinRaise;

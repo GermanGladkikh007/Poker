@@ -20,7 +20,7 @@ public class Game {
     public Game(GameConfig gameConfig, ConsoleView consoleView) {
         this.gameConfig = gameConfig;
         this.consoleView = consoleView;
-        this.gameEngine = new GameEngine(gameConfig);
+        this.gameEngine = null;
     }
 
     /**
@@ -43,6 +43,7 @@ public class Game {
         while(!gameEngine.isHandOver()){
             // если все all in, вскрываем, если нет просто обычный ход игрока
             if(gameEngine.getGameState().getCurrentPlayerIndex() ==-1){
+
                 List<GameEvent> autoEvents = gameEngine.advanceGame();
                 consoleView.render(autoEvents);
             }else{

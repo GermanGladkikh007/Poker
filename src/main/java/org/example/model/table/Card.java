@@ -9,4 +9,8 @@ import org.example.model.table.card_characteristics.Suit;
  * @param suit
  */
 public record Card(Rank rank, Suit suit) {
+    @Override
+    public String toString() {
+        return rank.getSymbol() + suit.getSymbol();
+    }
 }

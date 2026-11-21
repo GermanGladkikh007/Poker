@@ -4,6 +4,7 @@ import org.example.model.action.Action;
 import org.example.model.table.Card;
 import org.example.model.game.GameState;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,10 +21,12 @@ public class Player {
     private PlayerStatus status;
     private final DecisionMaker decisionMaker;
 
-    public Player(int id, String name, DecisionMaker decisionMaker) {
+    public Player(int id, String name, int chips, DecisionMaker decisionMaker) {
         this.id = id;
         this.name = name;
+        this.chips = chips;
         this.decisionMaker = decisionMaker;
+        this.holeCards = new ArrayList<>();
     }
 
     public Action decide(GameState state, List<Action> legalActions) {

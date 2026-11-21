@@ -75,9 +75,8 @@ public class HandEvaluator {
         boolean flush = isFlush(sorted);
         boolean straight = isStraight(sorted);
 
-
         // отработка всех комбинаций от старшей к младшей
-        if(flush && straight && sorted.get(0).rank() == Rank.ACE){
+        if(flush && straight && sorted.get(0).rank() == Rank.ACE && sorted.get(1).rank() == Rank.KING){
             return new HandValue(HandRank.ROYAL_FLUSH,List.of());
         }
 
@@ -85,7 +84,7 @@ public class HandEvaluator {
             return new HandValue(HandRank.STRAIGHT_FLUSH,List.of());
         }
 
-        if(counts.containsKey(4)){
+        if(counts.containsValue(4)){
             int quad = getKeyByValue(counts, 4);
             int kicker = getKeyByValue(counts, 1);
             return new HandValue(HandRank.FOUR_OF_A_KIND, List.of(quad, kicker));
@@ -117,7 +116,7 @@ public class HandEvaluator {
         }
 
         if (counts.values().stream().filter(v -> v == 2).count() == 2) {
-            List<Integer> pairs = getKeysByValue(counts, 2);
+            List<Integer> pairs = new ArrayList<>(getKeysByValue(counts, 2));
             pairs.sort(Comparator.reverseOrder());
             int kicker = getKeyByValue(counts, 1);
             return new HandValue(HandRank.TWO_PAIR,
@@ -145,12 +144,19 @@ public class HandEvaluator {
     }
 
     private boolean isStraight(List<Card> sortedCards) {
+        boolean normalStraight = true;
         for(int i = 1; i < sortedCards.size(); i++ ){
             int prev = sortedCards.get(i-1).rank().getValue();
             int curr = sortedCards.get(i).rank().getValue();
-            if(curr - prev != 1) return false;
+            if(Math.abs(curr - prev) != 1) {normalStraight =  false;break;}
         }
-        return true;
+        if(normalStraight){return true;};
+
+        return sortedCards.get(0).rank() == Rank.ACE
+                && sortedCards.get(1).rank() == Rank.FIVE
+                && sortedCards.get(2).rank() == Rank.FOUR
+                && sortedCards.get(3).rank() == Rank.THREE
+                && sortedCards.get(4).rank() == Rank.TWO;
     }
 
     private boolean isFlush(List<Card> cards) {

@@ -25,9 +25,9 @@ public class GameEngine {
     private final Random random;
     private Deck deck;
 
-    public GameEngine(GameConfig gameConfig) {
+    public GameEngine(GameConfig gameConfig, GameState gameState) {
         this.gameConfig = gameConfig;
-        this.gameState = new GameState(100);
+        this.gameState = gameState;
         this.random = new Random(gameConfig.seed());
     }
 
@@ -67,6 +67,7 @@ public class GameEngine {
             bbIndex = (gameState.getDealerIndex() + 2) % gameState.getPlayers().size();
         }
 
+
         Player sbPlayer = gameState.getPlayers().get(sbIndex);
         Player bbPlayer = gameState.getPlayers().get(bbIndex);
 
@@ -85,23 +86,8 @@ public class GameEngine {
 
         gameState.setCurrentPlayerIndex(firstToAct);
 
-
         return events;
     }
-
-
-    // Поставить блайнд
-    private void postBlind(Player player, int amount, List<GameEvent> events, boolean isSmall) {
-        int actualAmount = Math.min(amount, player.getChips());
-        player.setChips(player.getChips() - actualAmount);
-        player.setCurrentBet(actualAmount);
-        player.setTotalContribution(player.getTotalContribution() + actualAmount);
-
-        gameState.getPots().get(0).add(actualAmount);
-
-        events.add(new BlindsPosted(player, actualAmount, isSmall));
-    }
-
 
     /**
      * Обработка действия игрока
@@ -110,8 +96,6 @@ public class GameEngine {
      */
     public List<GameEvent> applyAction(Action action){
         Player player = getCurrentPlayer();
-
-
 
         List<GameEvent> events = new ArrayList<>();
 
@@ -122,6 +106,8 @@ public class GameEngine {
             case RAISE  -> handleRaise(player, events,action);
             case ALL_IN -> handleAllIn(player, events,action);
         }
+
+        gameState.setActionsTakenThisRound(gameState.getActionsTakenThisRound() + 1);
 
         if(isHandOver()){
             events.addAll(awardPotAndEndHand());
@@ -148,8 +134,11 @@ public class GameEngine {
                 return;
             }
         }
+        gameState.setCurrentPlayerIndex(-1);
+
     }
 
+    // Определение победителей
     private List<GameEvent> awardPotAndEndHand(){
         List<GameEvent> events = new ArrayList<>();
 
@@ -169,7 +158,7 @@ public class GameEngine {
 
         return events;
     }
-
+    // Переход в next Round
     private List<GameEvent> advanceStreet(){
         List<GameEvent> events = new ArrayList<>();
         Street currentStreet = gameState.getStreet();
@@ -177,6 +166,8 @@ public class GameEngine {
         for(Player p : gameState.getPlayers()){
             p.setCurrentBet(0);
         }
+
+        gameState.setActionsTakenThisRound(0);
         gameState.setCurrentBet(0);
         gameState.setMinRaise(gameState.getConstMinRaise());
 
@@ -203,13 +194,12 @@ public class GameEngine {
             }
         }
 
-        setFirstToActPostFlop();
+        setFirstToActPostFlop(); // передача ходу тому, у кого small blind
 
 
         return events;
 
     }
-
     // Вскрытие
     private List<GameEvent> showdown(){
         List<GameEvent> events = new ArrayList<>();
@@ -266,7 +256,7 @@ public class GameEngine {
 
         return events;
     }
-
+    // передача хода игроку в начале круга(small blind или тот кто после)
     private void setFirstToActPostFlop(){
         int totalPlayers = gameState.getPlayers().size();
         int dealerIndex = gameState.getDealerIndex();
@@ -307,6 +297,7 @@ public class GameEngine {
 
         gameState.getPots().get(0).add(toCall); // ПОКА ЧТО ДОБАВЛЯЕМ В ГЛАВНЫЙ БАНК, ПОБОЧНЫЕ СДЕЛАТЬ
 
+
         events.add(new PlayerActed(player,action));
     }
 
@@ -319,14 +310,14 @@ public class GameEngine {
             return;
         }
 
+        int raiseSize = raiseTo - gameState.getCurrentBet();
+        gameState.setCurrentBet(raiseTo);
+        gameState.setMinRaise(raiseSize);
+        gameState.getPots().get(0).add(raiseSize);
+
         player.setChips(player.getChips() - toCall);
         player.setCurrentBet(raiseTo);
         player.setTotalContribution(player.getTotalContribution() + toCall);
-
-        int raiseSize = raiseTo - player.getCurrentBet();
-        gameState.setCurrentBet(raiseTo);
-        gameState.setMinRaise(raiseSize);
-        gameState.getPots().get(0).add(raiseTo);
 
         events.add(new PlayerActed(player,action));
     }
@@ -359,17 +350,21 @@ public class GameEngine {
         List<Player> activePlayers = gameState.getPlayers().stream()
                 .filter(p -> p.getStatus() == PlayerStatus.ACTIVE).toList();
 
+
         if(activePlayers.size() <= 1){
             return true;
         }
 
+        boolean allAccepted = true;
         for(Player p : activePlayers){
             if(p.getCurrentBet() < gameState.getCurrentBet()){
-                return false;
+                allAccepted = false;
+                break;
             }
         }
+        if(!allAccepted) return false;
 
-        return true;
+        return gameState.getActionsTakenThisRound() >= activePlayers.size();
     }
 
     public boolean isHandOver(){
@@ -398,9 +393,26 @@ public class GameEngine {
      */
     public List<Action> getLegalActions(){
         List<Action> legalActions = new ArrayList<>();
+        Player player = getCurrentPlayer();
 
+        // Fold доступен всегда
+        legalActions.add(new Action(ActionType.FOLD));
 
-        !!!!!!!!!!!!!
+        if(player.getCurrentBet() < gameState.getCurrentBet()){
+            legalActions.add(new Action(ActionType.CALL));
+        }
+
+        if(player.getChips() > 0){
+            legalActions.add(new Action(ActionType.ALL_IN));
+        }
+
+        int minRaise = gameState.getCurrentBet() + gameState.getMinRaise();
+        int toCallForMinRaise = minRaise - player.getCurrentBet();
+
+        if(player.getChips() >= toCallForMinRaise){
+            legalActions.add(new Action(ActionType.RAISE, minRaise));
+        }
+
         return legalActions;
     }
 
@@ -420,4 +432,17 @@ public class GameEngine {
         advanceToNextPlayer();
         return List.of();
     }
+
+    // Поставить блайнд
+    private void postBlind(Player player, int amount, List<GameEvent> events, boolean isSmall) {
+        int actualAmount = Math.min(amount, player.getChips());
+        player.setChips(player.getChips() - actualAmount);
+        player.setCurrentBet(actualAmount);
+        player.setTotalContribution(player.getTotalContribution() + actualAmount);
+
+        gameState.getPots().get(0).add(actualAmount);
+
+        events.add(new BlindsPosted(player, actualAmount, isSmall));
+    }
+
 }
