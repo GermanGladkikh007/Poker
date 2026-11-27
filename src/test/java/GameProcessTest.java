@@ -9,6 +9,9 @@ import org.example.model.player.DecisionMaker;
 import org.example.model.player.Player;
 import org.example.model.player.PlayerStatus;
 import org.example.model.table.Board;
+import org.example.model.table.Card;
+import org.example.model.table.card_characteristics.Rank;
+import org.example.model.table.card_characteristics.Suit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,7 +26,7 @@ public class GameProcessTest {
 
     private static class StubDecisionMaker implements DecisionMaker {
         @Override
-        public Action decide(GameState state, List<Action> legalActions) {
+        public Action decide(GameState state, List<ActionType> legalActions) {
             return new Action(ActionType.FOLD);
         }
     }
@@ -40,6 +43,31 @@ public class GameProcessTest {
         engine = new GameEngine(config,gameState);
     }
 
+    private List<Card> parseCards(String... cardStrings) {
+        List<Card> cards = new ArrayList<>();
+        for(String s : cardStrings) {
+            String rankPart = s.substring(0,s.length()-1);
+            String suitPart = s.substring(s.length()-1);
+
+            Rank rank = switch (rankPart) {
+                case "2" -> Rank.TWO; case "3" -> Rank.THREE; case "4" -> Rank.FOUR;
+                case "5" -> Rank.FIVE; case "6" -> Rank.SIX; case "7" -> Rank.SEVEN;
+                case "8" -> Rank.EIGHT; case "9" -> Rank.NINE; case "10" -> Rank.TEN;
+                case "J" -> Rank.JACK; case "Q" -> Rank.QUEEN; case "K" -> Rank.KING;
+                case "A" -> Rank.ACE;
+                default -> throw new IllegalArgumentException("Неизвестный ранг: " + rankPart);
+            };
+
+            Suit suit = switch (suitPart) {
+                case "♥" -> Suit.HEARTS; case "♦" -> Suit.DIAMONDS;
+                case "♣" -> Suit.CLUBS; case "♠" -> Suit.SPADES;
+                default -> throw new IllegalArgumentException("Неизвестная масть: " + suitPart);
+            };
+
+            cards.add(new Card(rank, suit));
+        }
+        return cards;
+    }
 
     @Test
     void testStartHandPostsBlinds(){
@@ -207,7 +235,6 @@ public class GameProcessTest {
         engine.applyAction(new Action(ActionType.CHECK));
         engine.applyAction(new Action(ActionType.CHECK));
 
-        System.out.println(engine.getGameState().getStreet());
         // Должно дойти до Showdown и завершиться
         assertTrue(engine.isHandOver());
         assertEquals(Street.SHOWDOWN, engine.getGameState().getStreet());
@@ -222,27 +249,82 @@ public class GameProcessTest {
         assertEquals(1050,players.get(2).getChips());
     }
 
-    /*
+
     @Test
     void testSplitPotOnShowdownTie() {
-        List<Player> twoPlayers = new ArrayList<>();
-        twoPlayers.add(new Player(1, "P1", 1000, new StubDecisionMaker()));
-        twoPlayers.add(new Player(2, "P2", 1000, new StubDecisionMaker()));
+        List<Player> players = new ArrayList<>();
+        players.add(new Player(1, "P1", 1000, new StubDecisionMaker()));
+        players.add(new Player(2, "P2", 1000, new StubDecisionMaker()));
 
-        GameConfig config = new GameConfig(42, 100, 50);
-        GameEngine twoPlayerEngine = new GameEngine(config, new GameState(twoPlayers,new Board(),0,0));
-        twoPlayerEngine.startHand();
+        GameConfig config = new GameConfig(42, 50,100);
+        GameState state = new GameState(players, new Board(parseCards("A♥", "K♥", "Q♥", "J♥", "10♥")),0,0);
+        GameEngine engine = new GameEngine(config,state);
+        engine.startHand();
 
-        // Принудительно задаем одинаковые руки (например, оба имеют старшую карту A)
-        // (Для этого можно подменить карты на борде и в руках, но так как у нас нет прямого доступа,
-        // можно использовать рефлексию или сеттеры, если они есть).
+        // 2. Подменяем карты на столе на Роял-флеш
+        // Оба игрока его соберут, так как он лежит на столе целиком.
+        engine.getGameState().getBoard();
 
-        // Пропускаем торговлю (все чек до ривера)
-        twoPlayerEngine.applyAction(new Action(ActionType.CALL));
-        twoPlayerEngine.applyAction(new Action(ActionType.CHECK));
-        // ... (флоп, тёрн, ривер - все чек)
+        // 3. Задаем игрокам любые карты (они не будут использоваться в комбинации)
+        players.get(0).setHoleCards(parseCards("2♣", "3♦"));
+        players.get(1).setHoleCards(parseCards("4♣", "5♦"));
 
-        // Проверяем, что банк разделен поровну (если карты совпали)
-        // (Этот тест лучше делать, когда есть возможность подмены колоды).
-    } */
+        // 4. Торговля до Ривера (все чек/колл)
+        // Префлоп
+        engine.applyAction(new Action(ActionType.CALL));
+        engine.applyAction(new Action(ActionType.CHECK));
+        // Флоп
+        engine.applyAction(new Action(ActionType.CHECK));
+        engine.applyAction(new Action(ActionType.CHECK));
+        // Тёрн
+        engine.applyAction(new Action(ActionType.CHECK));
+        engine.applyAction(new Action(ActionType.CHECK));
+        // Ривер
+        engine.applyAction(new Action(ActionType.CHECK));
+        engine.applyAction(new Action(ActionType.CHECK));
+
+        // 5. Проверяем результат
+        assertTrue(engine.isHandOver());
+
+        // Банк был 150. Делится по 75.
+        // P1 (SB): 1000 - 50 + 75 = 1025
+        // P2 (BB): 1000 - 100 + 75 = 975
+        assertEquals(1000, players.get(0).getChips());
+        assertEquals(1000, players.get(1).getChips());
+    }
+
+    @Test
+    void testSidePotsWithThreePlayers(){
+
+        List<Player> players = new ArrayList<>();
+        players.add(new Player(1, "P1", 100, new StubDecisionMaker()));  // Маленький стек
+        players.add(new Player(2, "P2", 500, new StubDecisionMaker()));  // Средний стек
+        players.add(new Player(3, "P3", 1000, new StubDecisionMaker())); // Большой стек
+
+        GameConfig config = new GameConfig(42, 50,100);
+        GameState state = new GameState(players, new Board(parseCards("A♠", "K♠", "Q♠", "J♠", "2♣")), 0,0);
+        GameEngine engine = new GameEngine(config,state);
+
+        engine.startHand();
+
+        players.get(0).setHoleCards(parseCards("10♥", "3♦"));
+        players.get(1).setHoleCards(parseCards("A♥", "2♦"));
+        players.get(2).setHoleCards(parseCards("4♥", "5♦"));
+
+        engine.applyAction(new Action(ActionType.ALL_IN));
+        engine.applyAction(new Action(ActionType.ALL_IN));
+        engine.applyAction(new Action(ActionType.CALL));
+
+        engine.applyAction(new Action(ActionType.CHECK));
+        engine.applyAction(new Action(ActionType.CHECK));
+        engine.applyAction(new Action(ActionType.CHECK));
+
+
+        assertTrue(engine.isHandOver());
+        assertEquals(300,players.get(0).getChips());
+        assertEquals(800,players.get(1).getChips());
+        assertEquals(500,players.get(2).getChips());
+
+    }
+
 }

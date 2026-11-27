@@ -1,6 +1,7 @@
 package org.example.model.player;
 
 import org.example.model.action.Action;
+import org.example.model.action.ActionType;
 import org.example.model.game.GameState;
 
 import java.util.List;
@@ -15,6 +16,6 @@ public interface DecisionMaker {
      * @param legalActions
      * @return
      */
-    public Action decide(GameState state, List<Action> legalActions);
+    public Action decide(GameState state, List<ActionType> legalActions);
 }
 

@@ -15,6 +15,10 @@ public class Board {
         this.cards = new ArrayList<>();
     }
 
+    public Board(List<Card> cards) {
+        this.cards = cards;
+    }
+
     /**
      * Открыть флоп - первые 3 карты
      * @param c1

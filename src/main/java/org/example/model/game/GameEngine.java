@@ -11,7 +11,6 @@ import org.example.model.table.Deck;
 import org.example.model.table.Pot;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 /**
@@ -213,6 +212,8 @@ public class GameEngine {
             throw new IllegalStateException("Нет игроков для вскрытия!");
         }
 
+        List<Pot> pots = buildPots();
+
         HandEvaluator evaluator = new HandEvaluator(gameState.getBoard());
         Map<Player, HandValue> hands = new HashMap<>();
 
@@ -224,36 +225,33 @@ public class GameEngine {
             events.add(new ShowdownShown(p,p.getHoleCards(),handDesc));
         }
 
-        HandValue bestHandValue = hands.values().stream()
-                .max(HandValue::compareTo)
-                .orElseThrow();
-
-        List<Player> winners = hands.entrySet().stream()
-                .filter(entry -> entry.getValue().compareTo(bestHandValue) == 0)
-                .map(Map.Entry::getKey)
-                .toList();
-
-        for(Pot pot : gameState.getPots()){
-            List<Player> eligibleWinners = winners.stream()
+        for(Pot pot : pots){
+            List<Player> eligibleContenders = contenders.stream()
                     .filter(pot.getEligiblePlayers()::contains)
                     .toList();
 
-            if(eligibleWinners.isEmpty()){
+            if(eligibleContenders.isEmpty()){
                 continue;
             }
 
-            Map<Player, Integer> shares = pot.splitPot(eligibleWinners);
+            HandValue bestForPot = eligibleContenders.stream()
+                    .map(hands::get)
+                    .max(HandValue::compareTo).orElseThrow();
+
+            List<Player> potWinners = eligibleContenders.stream()
+                    .filter(p -> hands.get(p).compareTo(bestForPot) == 0)
+                    .toList();
+
+            Map<Player, Integer> shares = pot.splitPot(potWinners);
             for(Map.Entry<Player,Integer> entry : shares.entrySet()){
                 Player winner = entry.getKey();
                 int amount = entry.getValue();
                 winner.setChips(winner.getChips() + amount);
                 events.add(new PotAwarded(winner,amount));
             }
-
-            events.add(new HandEnded());
-            gameState.setHandOver(true);
         }
-
+        events.add(new HandEnded());
+        gameState.setHandOver(true);
         return events;
     }
     // передача хода игроку в начале круга(small blind или тот кто после)
@@ -351,18 +349,15 @@ public class GameEngine {
                 .filter(p -> p.getStatus() == PlayerStatus.ACTIVE).toList();
 
 
+        for(Player p : activePlayers){
+            if(p.getCurrentBet() < gameState.getCurrentBet()){
+                return false;
+            }
+        }
+
         if(activePlayers.size() <= 1){
             return true;
         }
-
-        boolean allAccepted = true;
-        for(Player p : activePlayers){
-            if(p.getCurrentBet() < gameState.getCurrentBet()){
-                allAccepted = false;
-                break;
-            }
-        }
-        if(!allAccepted) return false;
 
         return gameState.getActionsTakenThisRound() >= activePlayers.size();
     }
@@ -389,28 +384,33 @@ public class GameEngine {
 
     /**
      * Список действий, доступных игроку
+     *
      * @return
      */
-    public List<Action> getLegalActions(){
-        List<Action> legalActions = new ArrayList<>();
+    public List<ActionType> getLegalActions(){
+        List<ActionType> legalActions = new ArrayList<>();
         Player player = getCurrentPlayer();
 
         // Fold доступен всегда
-        legalActions.add(new Action(ActionType.FOLD));
+        legalActions.add(ActionType.FOLD);
+
+        if (player.getCurrentBet() == gameState.getCurrentBet()) {
+            legalActions.add(ActionType.CHECK);
+        }
 
         if(player.getCurrentBet() < gameState.getCurrentBet()){
-            legalActions.add(new Action(ActionType.CALL));
+            legalActions.add(ActionType.CALL);
         }
 
         if(player.getChips() > 0){
-            legalActions.add(new Action(ActionType.ALL_IN));
+            legalActions.add(ActionType.ALL_IN);
         }
 
         int minRaise = gameState.getCurrentBet() + gameState.getMinRaise();
         int toCallForMinRaise = minRaise - player.getCurrentBet();
 
         if(player.getChips() >= toCallForMinRaise){
-            legalActions.add(new Action(ActionType.RAISE, minRaise));
+            legalActions.add(ActionType.RAISE);
         }
 
         return legalActions;
@@ -445,4 +445,46 @@ public class GameEngine {
         events.add(new BlindsPosted(player, actualAmount, isSmall));
     }
 
+    // Разделение на банки
+    private List<Pot> buildPots(){
+        List<Pot> newPots = new ArrayList<>();
+
+        List<Player> contenders = gameState.getPlayers().stream()
+                .filter(p -> p.getStatus() == PlayerStatus.ACTIVE
+                || p.getStatus() == PlayerStatus.ALL_IN).toList();
+
+        List<Player> sorted = contenders.stream()
+                .sorted(Comparator.comparingInt(Player::getTotalContribution))
+                .toList();
+
+        int prevContribution = 0;
+
+        for(Player p : sorted){
+            int currentContribution = p.getTotalContribution();
+
+            if(currentContribution > prevContribution){
+                int playersInLevel = 0;
+                Set<Player> eligible = new HashSet<>();
+
+                for(Player other : sorted){
+                    if(other.getTotalContribution() >= currentContribution){
+                        playersInLevel++;
+                    }
+                    if(other.getTotalContribution() == currentContribution){
+                        eligible.add(other);
+                    }
+                }
+
+                int potSize = (currentContribution - prevContribution) * playersInLevel;
+
+                if(potSize > 0){
+                    newPots.add(new Pot(potSize,eligible));
+                }
+                prevContribution = currentContribution;
+            }
+        }
+
+        return newPots;
+
+    }
 }

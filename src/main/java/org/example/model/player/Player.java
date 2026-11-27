@@ -1,6 +1,7 @@
 package org.example.model.player;
 
 import org.example.model.action.Action;
+import org.example.model.action.ActionType;
 import org.example.model.table.Card;
 import org.example.model.game.GameState;
 
@@ -29,7 +30,7 @@ public class Player {
         this.holeCards = new ArrayList<>();
     }
 
-    public Action decide(GameState state, List<Action> legalActions) {
+    public Action decide(GameState state, List<ActionType> legalActions) {
         return decisionMaker.decide(state, legalActions);
     }
 
